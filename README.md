@@ -14,6 +14,10 @@ A lightweight browser-based Markdown editor for reviewing files that already liv
 
 The app does not browse directories, run Git commands, publish content, or deploy a site.
 
+<p align="center">
+  <img src="images/content-editor-preview.webp" alt="Content Editor showing Markdown and rendered preview side by side" width="1200">
+</p>
+
 ## Features
 
 - Edit and preview Markdown side by side

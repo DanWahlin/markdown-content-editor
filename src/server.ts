@@ -366,7 +366,7 @@ const app = createApp();
 if (require.main === module) {
   getAllowedPrefixes();
   app.listen(PORT, HOST, () =>
-    console.log(`Content editor running at http://${HOST}:${PORT}`)
+    console.log(`Markdown content editor running at http://${HOST}:${PORT}`)
   );
 }
 

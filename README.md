@@ -1,7 +1,7 @@
-# Content Editor
+# Markdown Content Editor
 
 <p align="center">
-  <img src="images/content-editor-logo.png" alt="Content Editor logo" width="350">
+  <img src="images/markdown-content-editor-logo.png" alt="Markdown Content Editor logo" width="350">
 </p>
 
 A lightweight browser-based Markdown editor for reviewing files that already live on the same machine as the server. It combines editing, rendered preview, draft controls, image previews, and optional Notion review status in one focused interface.
@@ -15,7 +15,7 @@ A lightweight browser-based Markdown editor for reviewing files that already liv
 The app does not browse directories, run Git commands, publish content, or deploy a site.
 
 <p align="center">
-  <img src="images/content-editor-preview.webp" alt="Content Editor showing Markdown and rendered preview side by side" width="1200">
+  <img src="images/markdown-content-editor-preview.webp" alt="Markdown Content Editor showing Markdown and rendered preview side by side" width="1200">
 </p>
 
 ## Features
@@ -42,8 +42,8 @@ The app does not browse directories, run Git commands, publish content, or deplo
 1. Clone the repository and install dependencies:
 
    ```sh
-   git clone https://github.com/DanWahlin/content-editor.git
-   cd content-editor
+   git clone https://github.com/DanWahlin/markdown-content-editor.git
+   cd markdown-content-editor
    npm ci
    ```
 
@@ -210,33 +210,33 @@ Common responses include `400` for invalid input, `401` for an invalid token, `4
 
 ## Linux Deployment with systemd
 
-[`deploy/content-editor.service`](deploy/content-editor.service) is a hardened starting point. It assumes:
+[`deploy/markdown-content-editor.service`](deploy/markdown-content-editor.service) is a hardened starting point. It assumes:
 
-- Application: `/opt/content-editor`
-- Environment file: `/etc/content-editor.env`
+- Application: `/opt/markdown-content-editor`
+- Environment file: `/etc/markdown-content-editor.env`
 - Content: `/srv/content`
-- Service account: `content-editor`
+- Service account: `markdown-content-editor`
 - Node binary: `/usr/bin/node`
 
 From a fresh Linux machine:
 
 ```sh
-sudo useradd --system --home /opt/content-editor --shell /usr/sbin/nologin content-editor
-sudo mkdir -p /opt/content-editor /srv/content
-sudo chown -R content-editor:content-editor /opt/content-editor /srv/content
-sudo cp -R . /opt/content-editor/
-cd /opt/content-editor
-sudo -u content-editor npm ci
-sudo -u content-editor npm run build
-sudo cp .env.example /etc/content-editor.env
-sudo chmod 600 /etc/content-editor.env
-sudoedit /etc/content-editor.env
+sudo useradd --system --home /opt/markdown-content-editor --shell /usr/sbin/nologin markdown-content-editor
+sudo mkdir -p /opt/markdown-content-editor /srv/content
+sudo chown -R markdown-content-editor:markdown-content-editor /opt/markdown-content-editor /srv/content
+sudo cp -R . /opt/markdown-content-editor/
+cd /opt/markdown-content-editor
+sudo -u markdown-content-editor npm ci
+sudo -u markdown-content-editor npm run build
+sudo cp .env.example /etc/markdown-content-editor.env
+sudo chmod 600 /etc/markdown-content-editor.env
+sudoedit /etc/markdown-content-editor.env
 command -v node
-sudo cp deploy/content-editor.service /etc/systemd/system/content-editor.service
+sudo cp deploy/markdown-content-editor.service /etc/systemd/system/markdown-content-editor.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now content-editor
-sudo systemctl status content-editor
-sudo journalctl -u content-editor -n 50 --no-pager
+sudo systemctl enable --now markdown-content-editor
+sudo systemctl status markdown-content-editor
+sudo journalctl -u markdown-content-editor -n 50 --no-pager
 ```
 
 Confirm that `command -v node` matches the unit's `ExecStart`. Every writable allowed prefix needs a matching `ReadWritePaths=` entry in the service file. Put a TLS and identity-aware reverse proxy in front of the loopback service rather than changing `HOST` unless your deployment architecture requires it.

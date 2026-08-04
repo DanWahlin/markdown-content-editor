@@ -7,9 +7,9 @@ import path from 'path';
 process.env.EDITOR_TOKEN = 'test-token-12345';
 process.env.NOTION_ACCESS_TOKEN = 'fake-notion-token';
 
-const testContentDir = '/tmp/content-editor-test-content';
+const testContentDir = '/tmp/markdown-content-editor-test-content';
 const testFile = path.join(testContentDir, '__test-editor-roundtrip.md');
-const testPublicDir = '/tmp/content-editor-public';
+const testPublicDir = '/tmp/markdown-content-editor-public';
 const testImageDir = path.join(testPublicDir, 'images', 'blog');
 const testImage = path.join(testImageDir, 'preview.webp');
 process.env.EDITOR_ALLOWED_PREFIXES = testContentDir;
@@ -30,7 +30,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('Content Editor API', () => {
+describe('Markdown Content Editor API', () => {
   it('serves a responsive wide desktop editor layout', async () => {
     const res = await request(app).get('/');
 
@@ -70,7 +70,7 @@ describe('Content Editor API', () => {
   });
 
   it('supports a configurable content-path allowlist', async () => {
-    const customDir = '/tmp/content-editor-custom-content';
+    const customDir = '/tmp/markdown-content-editor-custom-content';
     const customFile = path.join(customDir, 'post.md');
     fs.mkdirSync(customDir, { recursive: true });
     fs.writeFileSync(customFile, '# Configured path');
@@ -89,7 +89,7 @@ describe('Content Editor API', () => {
   });
 
   it('rejects symlinks that escape the configured allowlist', async () => {
-    const customDir = '/tmp/content-editor-symlink-check';
+    const customDir = '/tmp/markdown-content-editor-symlink-check';
     const linkedFile = path.join(customDir, 'outside.md');
     fs.mkdirSync(customDir, { recursive: true });
     fs.symlinkSync('/etc/passwd', linkedFile);
@@ -107,8 +107,8 @@ describe('Content Editor API', () => {
   });
 
   it('does not create files through a symlinked parent directory', async () => {
-    const allowedDir = '/tmp/content-editor-parent-symlink';
-    const outsideDir = '/tmp/content-editor-parent-outside';
+    const allowedDir = '/tmp/markdown-content-editor-parent-symlink';
+    const outsideDir = '/tmp/markdown-content-editor-parent-outside';
     const link = path.join(allowedDir, 'outside');
     const target = path.join(link, 'escaped.md');
     fs.mkdirSync(allowedDir, { recursive: true });

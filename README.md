@@ -150,6 +150,21 @@ This app reads local content and can overwrite existing Markdown files after tok
 - Keep the default `HOST=127.0.0.1` unless a trusted local proxy needs a different binding
 - Do not expose the Node.js port directly to the public internet
 
+### Production setup: Cloudflare Zero Trust
+
+The production deployment at `editor.codewithdan.com` adds two [Cloudflare Zero Trust](https://developers.cloudflare.com/cloudflare-one/) controls in front of the application:
+
+- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) creates an outbound-only connection from the server to Cloudflare. The VPS does not need a public inbound port for the editor
+- [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/) protects the hostname as a self-hosted application. Requests that have not passed the Access policy are redirected to Cloudflare's login flow before they can reach the editor
+
+The resulting path is:
+
+```text
+Browser → Cloudflare Access policy → Cloudflare Tunnel → 127.0.0.1:18793
+```
+
+Cloudflare Access protects the complete application, including the read routes that do not have application-level authentication. The editor's bearer token remains a second authorization check for file writes and Notion review actions. This layered setup keeps the Node.js service bound to loopback, removes the need for an exposed origin port, and prevents unauthenticated requests from reaching the application at all.
+
 The server accepts only existing Markdown files, rejects symlink escapes, blocks active SVG responses, sanitizes preview HTML, uses integrity-pinned frontend dependencies, and sends restrictive browser security headers. The editor token is stored only for the current browser-tab session.
 
 ## API

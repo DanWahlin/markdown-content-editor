@@ -1,0 +1,322 @@
+import { describe, it, expect, afterAll, afterEach, vi } from 'vitest';
+import request from 'supertest';
+import { createApp, extractDocumentTitle, getAllowedPrefixes, setDraftStatus } from '../src/server';
+import fs from 'fs';
+import path from 'path';
+
+process.env.EDITOR_TOKEN = 'test-token-12345';
+process.env.NOTION_ACCESS_TOKEN = 'fake-notion-token';
+
+const testContentDir = '/tmp/content-editor-test-content';
+const testFile = path.join(testContentDir, '__test-editor-roundtrip.md');
+const testPublicDir = '/tmp/content-editor-public';
+const testImageDir = path.join(testPublicDir, 'images', 'blog');
+const testImage = path.join(testImageDir, 'preview.webp');
+process.env.EDITOR_ALLOWED_PREFIXES = testContentDir;
+process.env.EDITOR_PUBLIC_DIR = testPublicDir;
+fs.mkdirSync(testContentDir, { recursive: true });
+fs.mkdirSync(testImageDir, { recursive: true });
+fs.writeFileSync(testImage, Buffer.from('fake-webp-image'));
+fs.writeFileSync(path.join(testPublicDir, 'images', 'secret.txt'), 'not public through blog route');
+
+const app = createApp();
+
+afterAll(() => {
+  fs.rmSync(testContentDir, { recursive: true, force: true });
+  fs.rmSync(testPublicDir, { recursive: true, force: true });
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('Content Editor API', () => {
+  it('serves a responsive wide desktop editor layout', async () => {
+    const res = await request(app).get('/');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('width: min(96vw, 2200px);');
+    expect(res.text).toContain('padding: 24px clamp(12px, 1.5vw, 32px) 120px;');
+    expect(res.text).toContain('DOMPurify.sanitize');
+    expect(res.text).toContain('sessionStorage.getItem');
+    expect(res.text).toContain('integrity="sha384-');
+  });
+
+  it('returns 403 for paths outside whitelist', async () => {
+    const forbidden = Buffer.from('/etc/passwd').toString('base64');
+    const res = await request(app).get(`/api/file?p=${forbidden}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('requires an explicit content-path allowlist', () => {
+    const originalPrefixes = process.env.EDITOR_ALLOWED_PREFIXES;
+    delete process.env.EDITOR_ALLOWED_PREFIXES;
+    try {
+      expect(() => getAllowedPrefixes()).toThrow('EDITOR_ALLOWED_PREFIXES');
+    } finally {
+      process.env.EDITOR_ALLOWED_PREFIXES = originalPrefixes;
+    }
+  });
+
+  it('rejects non-Markdown files inside an allowed directory', async () => {
+    const envFile = path.join(testContentDir, '.env');
+    fs.writeFileSync(envFile, 'EDITOR_TOKEN=not-a-real-secret');
+    const encoded = Buffer.from(envFile).toString('base64');
+
+    const res = await request(app).get(`/api/file?p=${encoded}`);
+
+    expect(res.status).toBe(403);
+    fs.unlinkSync(envFile);
+  });
+
+  it('supports a configurable content-path allowlist', async () => {
+    const customDir = '/tmp/content-editor-custom-content';
+    const customFile = path.join(customDir, 'post.md');
+    fs.mkdirSync(customDir, { recursive: true });
+    fs.writeFileSync(customFile, '# Configured path');
+    process.env.EDITOR_ALLOWED_PREFIXES = customDir;
+
+    try {
+      const encoded = Buffer.from(customFile).toString('base64');
+      const res = await request(app).get(`/api/file?p=${encoded}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.content).toBe('# Configured path');
+    } finally {
+      process.env.EDITOR_ALLOWED_PREFIXES = testContentDir;
+      fs.rmSync(customDir, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects symlinks that escape the configured allowlist', async () => {
+    const customDir = '/tmp/content-editor-symlink-check';
+    const linkedFile = path.join(customDir, 'outside.md');
+    fs.mkdirSync(customDir, { recursive: true });
+    fs.symlinkSync('/etc/passwd', linkedFile);
+    process.env.EDITOR_ALLOWED_PREFIXES = customDir;
+
+    try {
+      const encoded = Buffer.from(linkedFile).toString('base64');
+      const res = await request(app).get(`/api/file?p=${encoded}`);
+
+      expect(res.status).toBe(403);
+    } finally {
+      process.env.EDITOR_ALLOWED_PREFIXES = testContentDir;
+      fs.rmSync(customDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not create files through a symlinked parent directory', async () => {
+    const allowedDir = '/tmp/content-editor-parent-symlink';
+    const outsideDir = '/tmp/content-editor-parent-outside';
+    const link = path.join(allowedDir, 'outside');
+    const target = path.join(link, 'escaped.md');
+    fs.mkdirSync(allowedDir, { recursive: true });
+    fs.mkdirSync(outsideDir, { recursive: true });
+    fs.symlinkSync(outsideDir, link);
+    process.env.EDITOR_ALLOWED_PREFIXES = allowedDir;
+
+    try {
+      const encoded = Buffer.from(target).toString('base64');
+      const res = await request(app)
+        .post('/api/save')
+        .set('Authorization', 'Bearer test-token-12345')
+        .send({ p: encoded, content: 'escaped' });
+
+      expect(res.status).toBe(404);
+      expect(fs.existsSync(path.join(outsideDir, 'escaped.md'))).toBe(false);
+    } finally {
+      process.env.EDITOR_ALLOWED_PREFIXES = testContentDir;
+      fs.rmSync(allowedDir, { recursive: true, force: true });
+      fs.rmSync(outsideDir, { recursive: true, force: true });
+    }
+  });
+
+  it('returns 401 when token is missing', async () => {
+    const p = Buffer.from(path.join(testContentDir, 'test.md')).toString('base64');
+    const res = await request(app).post('/api/save').send({ p, content: 'test' });
+    expect(res.status).toBe(401);
+  });
+
+  it('disables write operations when EDITOR_TOKEN is not configured', async () => {
+    const originalToken = process.env.EDITOR_TOKEN;
+    delete process.env.EDITOR_TOKEN;
+
+    try {
+      const p = Buffer.from(path.join(testContentDir, 'test.md')).toString('base64');
+      const res = await request(app)
+        .post('/api/save')
+        .set('Authorization', 'Bearer any-value')
+        .send({ p, content: 'test' });
+
+      expect(res.status).toBe(503);
+      expect(res.body.error).toBe('EDITOR_TOKEN is not configured');
+    } finally {
+      process.env.EDITOR_TOKEN = originalToken;
+    }
+  });
+
+  it('returns 404 for missing file', async () => {
+    const p = Buffer.from(path.join(testContentDir, 'nonexistent-file-xyz.md')).toString('base64');
+    const res = await request(app).get(`/api/file?p=${p}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('save round-trip works', async () => {
+    const p = Buffer.from(testFile).toString('base64');
+
+    fs.writeFileSync(testFile, '# Original');
+
+    const saveRes = await request(app)
+      .post('/api/save')
+      .set('Authorization', 'Bearer test-token-12345')
+      .send({ p, content: '# Updated content\n\nHello world' });
+    expect(saveRes.status).toBe(200);
+    expect(saveRes.body.ok).toBe(true);
+
+    const readRes = await request(app).get(`/api/file?p=${p}`);
+    expect(readRes.status).toBe(200);
+    expect(readRes.body.content).toBe('# Updated content\n\nHello world');
+  });
+
+  it('prepares an Astro draft for publication without publishing it', async () => {
+    const p = Buffer.from(testFile).toString('base64');
+    const content = `---
+title: "Test post"
+draft: true
+---
+
+The body can still mention draft: true without being changed.
+`;
+    fs.writeFileSync(testFile, content);
+
+    const res = await request(app)
+      .post('/api/prepare-publication')
+      .set('Authorization', 'Bearer test-token-12345')
+      .send({ p, content });
+
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.content).toContain('draft: false');
+    expect(res.body.content).toContain('The body can still mention draft: true');
+    expect(fs.readFileSync(testFile, 'utf8')).toBe(res.body.content);
+  });
+
+  it('returns the current Notion review status', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({
+        properties: { Status: { select: { name: 'Approved' } } },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    );
+
+    const res = await request(app)
+      .get('/api/review?notion_id=11111111-2222-3333-4444-555555555555')
+      .set('Authorization', 'Bearer test-token-12345');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: 'Approved' });
+  });
+
+  it('reports when the optional Notion integration is not configured', async () => {
+    const originalToken = process.env.NOTION_ACCESS_TOKEN;
+    delete process.env.NOTION_ACCESS_TOKEN;
+    try {
+      const res = await request(app)
+        .get('/api/review?notion_id=11111111-2222-3333-4444-555555555555')
+        .set('Authorization', 'Bearer test-token-12345');
+
+      expect(res.status).toBe(503);
+      expect(res.body.error).toBe('NOTION_ACCESS_TOKEN is not configured');
+    } finally {
+      process.env.NOTION_ACCESS_TOKEN = originalToken;
+    }
+  });
+
+  it('does not follow a cover-image symlink outside the allowlist', async () => {
+    const markdown = path.join(testContentDir, 'cover-check.md');
+    const cover = path.join(testContentDir, 'cover-check-cover.webp');
+    fs.writeFileSync(markdown, '# Cover check');
+    fs.symlinkSync('/etc/passwd', cover);
+
+    const encoded = Buffer.from(markdown).toString('base64');
+    const res = await request(app).get(`/api/cover?p=${encoded}`);
+
+    expect(res.status).toBe(404);
+    fs.unlinkSync(cover);
+    fs.unlinkSync(markdown);
+  });
+
+  it('serves configured blog images used by Markdown previews', async () => {
+    const res = await request(app).get('/images/blog/preview.webp');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/^image\/webp/);
+    expect(res.headers['cache-control']).toContain('no-store');
+    expect(Buffer.from(res.body).toString()).toBe('fake-webp-image');
+  });
+
+  it('does not allow the blog image route to escape its public directory', async () => {
+    const res = await request(app).get('/images/blog/%2e%2e%2fsecret.txt');
+
+    expect(res.status).toBe(404);
+  });
+
+  it('does not serve active SVG content from the application origin', async () => {
+    fs.writeFileSync(path.join(testImageDir, 'active.svg'), '<svg><script>alert(1)</script></svg>');
+
+    const res = await request(app).get('/images/blog/active.svg');
+
+    expect(res.status).toBe(404);
+  });
+});
+
+describe('extractDocumentTitle', () => {
+  it('prefers the frontmatter title over headings inside fenced examples', () => {
+    const content = `---
+title: "How I Turned a VPS into an Always-On AI Coding Server"
+draft: true
+---
+
+\`\`\`bash
+# Example only
+my-service --host 127.0.0.1
+\`\`\`
+`;
+
+    expect(extractDocumentTitle(content)).toBe('How I Turned a VPS into an Always-On AI Coding Server');
+  });
+
+  it('falls back to the first Markdown heading outside fenced code', () => {
+    const content = `\`\`\`bash
+# Not the title
+\`\`\`
+
+# Actual title
+`;
+
+    expect(extractDocumentTitle(content)).toBe('Actual title');
+  });
+});
+
+describe('setDraftStatus', () => {
+  it('changes only the draft field inside Astro frontmatter', () => {
+    const content = `---
+title: "Test post"
+draft: true
+---
+
+Body text containing draft: true stays unchanged.
+`;
+
+    const updated = setDraftStatus(content, false);
+
+    expect(updated).toContain('draft: false');
+    expect(updated).toContain('Body text containing draft: true stays unchanged.');
+  });
+
+  it('rejects content without a draft field in frontmatter', () => {
+    expect(() => setDraftStatus('---\ntitle: Test\n---\n', false)).toThrow(
+      'Frontmatter draft field not found'
+    );
+  });
+});

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Content Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/easymde@2.21.0/dist/easymde.min.css" integrity="sha384-ZoLYv3S+AsZX+zhbN1D1+WPpc8f+DmLfxfgw+qn0Nq8wJPOYQQXEW5ZrRhcGozlG" crossorigin="anonymous">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f6f8;
+      color: #1a1a2e;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 56px;
+      background: #fff;
+      border-bottom: 1px solid #e2e5ea;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #6366f1;
+    }
+    .header-divider { width: 1px; height: 20px; background: #e2e5ea; }
+    .header h1 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #4b5563;
+      max-width: 500px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .status-group { display: flex; gap: 6px; align-items: center; }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      background: #f3f4f6;
+      color: #4b5563;
+      border: 1px solid #e2e5ea;
+    }
+    .status-draft { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+    .status-ready, .status-approved { background: #ecfdf5; color: #047857; border-color: #a7f3d0; }
+    .status-needs-revision { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+    .status-denied { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .btn-ghost {
+      padding: 5px 12px;
+      font-size: 12px;
+      border: 1px solid #e2e5ea;
+      background: #fff;
+      color: #6b7280;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-ghost:hover { background: #f5f6f8; border-color: #d1d5db; color: #374151; }
+
+    /* ── Main editor area ── */
+    .editor-wrap {
+      width: min(96vw, 2200px);
+      margin: 0 auto;
+      padding: 24px clamp(12px, 1.5vw, 32px) 120px;
+    }
+
+    /* EasyMDE overrides — light & clean */
+    .EasyMDEContainer {
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .EasyMDEContainer .editor-toolbar {
+      background: #fff;
+      border-color: #e2e5ea;
+      padding: 6px 8px;
+    }
+    .EasyMDEContainer .editor-toolbar button {
+      color: #4b5563 !important;
+      border-radius: 5px;
+    }
+    .EasyMDEContainer .editor-toolbar button:hover,
+    .EasyMDEContainer .editor-toolbar button.active {
+      background: #f0f1ff;
+      color: #6366f1 !important;
+    }
+    .EasyMDEContainer .editor-toolbar i.separator { border-color: #e2e5ea; }
+    .EasyMDEContainer .editor-toolbar button::before {
+      display: inline-block;
+      min-width: 1em;
+      font-family: Arial, sans-serif;
+      font-size: 15px;
+      font-style: normal;
+      line-height: 1;
+      text-align: center;
+    }
+    .EasyMDEContainer .editor-toolbar .bold::before { content: "B"; font-weight: 700; }
+    .EasyMDEContainer .editor-toolbar .italic::before { content: "I"; font-family: Georgia, serif; font-style: italic; }
+    .EasyMDEContainer .editor-toolbar .heading::before { content: "H"; font-weight: 700; }
+    .EasyMDEContainer .editor-toolbar .quote::before { content: "❞"; }
+    .EasyMDEContainer .editor-toolbar .unordered-list::before { content: "•"; font-size: 20px; }
+    .EasyMDEContainer .editor-toolbar .ordered-list::before { content: "1."; font-size: 13px; }
+    .EasyMDEContainer .editor-toolbar .link::before { content: "↗"; font-size: 18px; }
+    .EasyMDEContainer .editor-toolbar .image::before { content: "▣"; font-size: 17px; }
+    .EasyMDEContainer .editor-toolbar .preview::before { content: "◉"; }
+    .EasyMDEContainer .editor-toolbar .side-by-side::before { content: "◫"; font-size: 18px; }
+    .EasyMDEContainer .editor-toolbar .fullscreen::before { content: "⛶"; font-size: 18px; }
+    .EasyMDEContainer .editor-toolbar .guide::before { content: "?"; font-weight: 700; }
+    .EasyMDEContainer .CodeMirror {
+      background: #fff;
+      color: #1f2937;
+      border-color: #e2e5ea;
+      font-size: 15px;
+      line-height: 1.75;
+      font-family: 'Georgia', serif;
+    }
+    .EasyMDEContainer .CodeMirror-cursor { border-left-color: #6366f1; }
+    .CodeMirror-selected { background: #e0e7ff !important; }
+    .EasyMDEContainer .editor-preview,
+    .EasyMDEContainer .editor-preview-side {
+      background: #fafafa;
+      color: #1f2937;
+      border-color: #e2e5ea;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      line-height: 1.75;
+      padding: 24px 32px;
+    }
+    .EasyMDEContainer .editor-preview h1,
+    .EasyMDEContainer .editor-preview h2,
+    .EasyMDEContainer .editor-preview h3 { color: #111827; font-weight: 700; margin: 1.5em 0 0.5em; }
+    .EasyMDEContainer .editor-preview p { margin-bottom: 1em; }
+    .EasyMDEContainer .editor-preview a { color: #6366f1; }
+    .EasyMDEContainer .editor-preview img,
+    .EasyMDEContainer .editor-preview-side img {
+      display: block;
+      width: auto;
+      max-width: 100%;
+      height: auto;
+      margin: 1.5em auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+    }
+    .EasyMDEContainer .editor-preview code {
+      background: #f3f4f6; border-radius: 4px; padding: 1px 5px; font-size: 0.9em;
+    }
+    .EasyMDEContainer .editor-preview blockquote {
+      border-left: 3px solid #6366f1; padding-left: 1em; color: #6b7280; margin: 1em 0;
+    }
+
+    /* ── Action bar ── */
+    .actions-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 12px 24px;
+      background: #fff;
+      border-top: 1px solid #e2e5ea;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+      z-index: 100;
+    }
+    .feedback-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+    .feedback-wrap input {
+      width: 100%;
+      padding: 9px 14px;
+      border: 1px solid #e2e5ea;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #1f2937;
+      background: #f9fafb;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    .feedback-wrap input:focus {
+      border-color: #6366f1;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .action-btn {
+      padding: 9px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-save {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #e2e5ea;
+    }
+    .btn-save:hover { background: #e5e7eb; border-color: #d1d5db; }
+    .btn-prepare { background: #4f46e5; color: #fff; }
+    .btn-prepare:hover { background: #4338ca; }
+    .btn-approve { background: #10b981; color: #fff; }
+    .btn-approve:hover { background: #059669; }
+    .btn-revision { background: #f59e0b; color: #fff; }
+    .btn-revision:hover { background: #d97706; }
+    .btn-deny { background: #ef4444; color: #fff; }
+    .btn-deny:hover { background: #dc2626; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      z-index: 9999;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: opacity 0.3s;
+    }
+    .toast-success { background: #10b981; }
+    .toast-error { background: #ef4444; }
+
+    /* ── Token modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,17,26,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      backdrop-filter: blur(2px);
+    }
+    .modal {
+      background: #fff;
+      padding: 32px;
+      border-radius: 14px;
+      width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    }
+    .modal h2 { font-size: 18px; margin-bottom: 6px; color: #111827; }
+    .modal p { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+    .modal input {
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      border: 1px solid #e2e5ea;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: monospace;
+      outline: none;
+      color: #1f2937;
+    }
+    .modal input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .modal button {
+      width: 100%;
+      padding: 10px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .modal button:hover { background: #4f46e5; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <span class="header-logo">Content Editor</span>
+      <div class="header-divider"></div>
+      <h1 id="title">Loading…</h1>
+      <div class="status-group">
+        <span id="draft-status" class="status-badge">Loading…</span>
+        <span id="review-status" class="status-badge" style="display:none"></span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-ghost" onclick="clearToken()">🔑 Clear Token</button>
+    </div>
+  </div>
+
+  <div id="cover-wrap" style="max-width:1280px;margin:24px auto 0;padding:0 24px;display:none">
+    <img id="cover-img" src="" alt="Cover image" style="width:100%;max-height:360px;object-fit:cover;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.1)">
+  </div>
+  <div class="editor-wrap">
+    <textarea id="editor"></textarea>
+  </div>
+
+  <div class="actions-bar">
+    <div class="feedback-wrap">
+      <input type="text" id="feedback" placeholder="Add feedback or revision notes…" />
+    </div>
+    <button class="action-btn btn-save" onclick="saveDraft()">💾 Save Changes</button>
+    <button class="action-btn btn-prepare" onclick="prepareForPublication()">📦 Prepare for Publication</button>
+    <button class="action-btn btn-approve review-btn" onclick="submitReview('Approved', event)">✅ Approve Review</button>
+    <button class="action-btn btn-revision review-btn" onclick="submitReview('Needs Revision', event)">✏️ Needs Revision</button>
+    <button class="action-btn btn-deny review-btn" onclick="submitReview('Denied', event)">❌ Deny</button>
+  </div>
+
+  <script src="https://unpkg.com/dompurify@3.4.13/dist/purify.min.js" integrity="sha384-ZuC+DIACqSIZTsp+7YF57cR5Y+6qXa7YFbEKdA/EHA/R0T+41dtorqucYl71Zp+t" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/easymde@2.21.0/dist/easymde.min.js" integrity="sha384-mTM6vzy+/UiHrMBClNGViM9qEv0/26iCGqpJKhSzdnjrxbKjO3vkT62ujXQ8B5iv" crossorigin="anonymous"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const filePath = params.get('p');
+    const notionId = params.get('notion');
+    const previewAssetVersion = Date.now().toString(36);
+    let easyMDE;
+
+    if (!notionId) {
+      document.querySelectorAll('.review-btn').forEach(btn => btn.style.display = 'none');
+      document.getElementById('feedback').style.display = 'none';
+    }
+
+    function getToken() {
+      let token = sessionStorage.getItem('editor_token');
+      if (!token) token = promptForToken();
+      return token;
+    }
+
+    function promptForToken() {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = `
+          <div class="modal">
+            <h2>Editor Token</h2>
+            <p>Enter your EDITOR_TOKEN to enable saving and review actions.</p>
+            <input type="password" id="token-input" placeholder="Paste your token…" autofocus />
+            <button onclick="saveToken()">Continue</button>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('input').addEventListener('keydown', e => { if (e.key === 'Enter') saveToken(); });
+        window._tokenResolve = resolve;
+      });
+    }
+
+    window.saveToken = function() {
+      const input = document.getElementById('token-input');
+      const token = input.value.trim();
+      if (token) {
+        sessionStorage.setItem('editor_token', token);
+        document.querySelector('.modal-overlay')?.remove();
+        if (window._tokenResolve) window._tokenResolve(token);
+        loadReviewStatus();
+      }
+    };
+
+    function clearToken() {
+      sessionStorage.removeItem('editor_token');
+      if (notionId) renderReviewStatus('Sign in to view');
+      showToast('Token cleared', 'success');
+    }
+
+    function showToast(msg, type) {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+    }
+
+    function renderDraftStatus(content) {
+      const badge = document.getElementById('draft-status');
+      const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+      const isDraft = frontmatter ? /^draft:\s*true\s*$/m.test(frontmatter[1]) : null;
+      badge.className = `status-badge ${isDraft === false ? 'status-ready' : 'status-draft'}`;
+      badge.textContent = isDraft === false ? 'Publication: Prepared' : 'Publication: Draft';
+    }
+
+    function renderReviewStatus(status) {
+      const badge = document.getElementById('review-status');
+      if (!notionId) {
+        badge.style.display = 'none';
+        return;
+      }
+      const className = String(status).toLowerCase().replace(/\s+/g, '-');
+      badge.className = `status-badge status-${className}`;
+      badge.textContent = `Review: ${status}`;
+      badge.style.display = 'inline-flex';
+    }
+
+    async function loadReviewStatus() {
+      if (!notionId) return;
+      const token = sessionStorage.getItem('editor_token');
+      if (!token) {
+        renderReviewStatus('Sign in to view');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/review?notion_id=${encodeURIComponent(notionId)}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to load review status');
+        renderReviewStatus(data.status);
+      } catch {
+        renderReviewStatus('Unavailable');
+      }
+    }
+
+    async function loadFile() {
+      if (!filePath) { showToast('No file path specified', 'error'); return; }
+      try {
+        const res = await fetch(`/api/file?p=${encodeURIComponent(filePath)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load file');
+
+        easyMDE = new EasyMDE({
+          element: document.getElementById('editor'),
+          autoDownloadFontAwesome: false,
+          spellChecker: false,
+          autosave: { enabled: false },
+          minHeight: 'calc(100vh - 200px)',
+          toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list','|','link','|','preview','side-by-side','fullscreen'],
+          initialValue: data.content,
+          previewRender: function(plainText) {
+            const html = EasyMDE.prototype.markdown.call(easyMDE, plainText);
+            const versionedImages = html.replace(
+              /(<img\b[^>]*\bsrc=["'])(\/images\/blog\/[^"'?]+)(["'])/gi,
+              `$1$2?editor-preview=${previewAssetVersion}$3`
+            );
+            return DOMPurify.sanitize(versionedImages, { USE_PROFILES: { html: true } });
+          },
+          sideBySideFullscreen: false,
+        });
+
+        document.getElementById('title').textContent = data.title || 'Untitled';
+        renderDraftStatus(data.content);
+        loadReviewStatus();
+
+        // Load cover image if available
+        const coverRes = await fetch(`/api/cover?p=${encodeURIComponent(filePath)}`);
+        if (coverRes.ok) {
+          const blob = await coverRes.blob();
+          const url = URL.createObjectURL(blob);
+          const coverImg = document.getElementById('cover-img');
+          const coverWrap = document.getElementById('cover-wrap');
+          coverImg.src = url;
+          coverWrap.style.display = 'block';
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function requireEditorToken() {
+      let token = sessionStorage.getItem('editor_token');
+      if (!token) token = await promptForToken();
+      return token;
+    }
+
+    async function saveDraft() {
+      const token = await requireEditorToken();
+      if (!token) return;
+      try {
+        const content = easyMDE.value();
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ p: filePath, content }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Save failed');
+        renderDraftStatus(content);
+        showToast('Changes saved!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function prepareForPublication() {
+      const confirmed = window.confirm(
+        'Prepare this post for publication? This sets draft: false and saves the file. It does not commit, push, or deploy anything.'
+      );
+      if (!confirmed) return;
+
+      const token = await requireEditorToken();
+      if (!token) return;
+      try {
+        const res = await fetch('/api/prepare-publication', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ p: filePath, content: easyMDE.value() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Unable to prepare publication');
+        easyMDE.value(data.content);
+        renderDraftStatus(data.content);
+        showToast('Prepared for publication. Nothing was committed or deployed.', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function submitReview(status, event) {
+      const token = await requireEditorToken();
+      if (!token) return;
+      const feedback = document.getElementById('feedback').value.trim();
+      try {
+        const saveRes = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ p: filePath, content: easyMDE.value() }),
+        });
+        const saveData = await saveRes.json();
+        if (!saveRes.ok) throw new Error(saveData.error || 'Save failed; review status was not changed');
+
+        const res = await fetch('/api/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ notion_id: notionId, status, feedback: feedback || undefined }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Review failed');
+        renderDraftStatus(easyMDE.value());
+        renderReviewStatus(status);
+        showToast(`Review marked: ${status}`, 'success');
+        if (event?.target) {
+          const btn = event.target;
+          btn.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.4)';
+          setTimeout(() => btn.style.boxShadow = '', 2000);
+        }
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    loadFile();
+  </script>
+</body>
+</html>

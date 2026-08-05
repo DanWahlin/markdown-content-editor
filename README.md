@@ -91,7 +91,7 @@ The app does not browse directories, run Git commands, publish content, or deplo
    node -e "const p=Buffer.from(process.argv[1]).toString('base64'); console.log('http://localhost:18793/?p='+encodeURIComponent(p))" "/absolute/path/to/your/content/post.md"
    ```
 
-Open the printed URL. Reading is available immediately. The first save or review action asks for `EDITOR_TOKEN` and keeps it in that browser tab's session storage.
+Open the printed URL. Reading is available immediately. The first save or review action asks for `EDITOR_TOKEN`. By default the token stays only in that browser tab's session storage. Select **Remember on this device** to keep it in that browser's local storage until **Clear Token** is selected. Do not persist the token on a shared device.
 
 ## Configuration
 
@@ -170,7 +170,7 @@ Browser → Cloudflare Access policy → Cloudflare Tunnel → private origin
 
 Cloudflare Zero Trust is optional. If you use it, configure an Access policy for every application route and keep the origin unavailable through any alternate public path.
 
-The server accepts only existing Markdown files, rejects symlink escapes, blocks active SVG responses, sanitizes preview HTML, uses integrity-pinned frontend dependencies, and sends restrictive browser security headers. The editor token is stored only for the current browser-tab session.
+The server accepts only existing Markdown files, rejects symlink escapes, blocks active SVG responses, sanitizes preview HTML, uses integrity-pinned frontend dependencies, and sends restrictive browser security headers. The editor token is session-only by default. Users may explicitly persist it in local browser storage for a trusted device and can remove it with **Clear Token**.
 
 ## API
 

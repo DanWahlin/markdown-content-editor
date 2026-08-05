@@ -38,7 +38,16 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('width: min(96vw, 2200px);');
     expect(res.text).toContain('padding: 24px clamp(12px, 1.5vw, 32px) 120px;');
     expect(res.text).toContain('DOMPurify.sanitize');
-    expect(res.text).toContain('sessionStorage.getItem');
+    expect(res.text).toContain("sessionStorage.getItem('editor_token')");
+    expect(res.text).toContain("localStorage.getItem('editor_token')");
+    expect(res.text).toContain('id="remember-token"');
+    expect(res.text).toContain('Remember on this device');
+    expect(res.text).toContain('Do not enable this on a shared device');
+    expect(res.text).toContain('width: min(420px, calc(100vw - 32px));');
+    expect(res.text).toContain('name="editor-token"');
+    expect(res.text).toContain('autocomplete="current-password"');
+    expect(res.text).toContain("font-size: 16px;");
+    expect(res.text).toContain("localStorage.removeItem('editor_token')");
     expect(res.text).toContain('integrity="sha384-');
   });
 

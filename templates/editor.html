@@ -260,9 +260,9 @@
     }
     .modal {
       background: #fff;
-      padding: 32px;
+      padding: clamp(22px, 6vw, 32px);
       border-radius: 14px;
-      width: 420px;
+      width: min(420px, calc(100vw - 32px));
       box-shadow: 0 20px 60px rgba(0,0,0,0.18);
     }
     .modal h2 { font-size: 18px; margin-bottom: 6px; color: #111827; }
@@ -273,12 +273,31 @@
       margin-bottom: 16px;
       border: 1px solid #e2e5ea;
       border-radius: 8px;
-      font-size: 14px;
+      font-size: 16px;
       font-family: monospace;
       outline: none;
       color: #1f2937;
     }
     .modal input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .remember-token {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 8px;
+      color: #374151;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .remember-token input {
+      width: auto;
+      margin: 0;
+      box-shadow: none;
+    }
+    .modal .token-warning {
+      margin: 0 0 16px;
+      color: #9a3412;
+      font-size: 12px;
+    }
     .modal button {
       width: 100%;
       padding: 10px;
@@ -342,10 +361,8 @@
       document.getElementById('feedback').style.display = 'none';
     }
 
-    function getToken() {
-      let token = sessionStorage.getItem('editor_token');
-      if (!token) token = promptForToken();
-      return token;
+    function getStoredToken() {
+      return sessionStorage.getItem('editor_token') || localStorage.getItem('editor_token');
     }
 
     function promptForToken() {
@@ -356,7 +373,12 @@
           <div class="modal">
             <h2>Editor Token</h2>
             <p>Enter your EDITOR_TOKEN to enable saving and review actions.</p>
-            <input type="password" id="token-input" placeholder="Paste your token…" autofocus />
+            <input type="password" id="token-input" name="editor-token" autocomplete="current-password" placeholder="Paste your token…" autofocus />
+            <label class="remember-token">
+              <input type="checkbox" id="remember-token" />
+              <span>Remember on this device</span>
+            </label>
+            <p class="token-warning">Do not enable this on a shared device. The token remains in this browser until you clear it.</p>
             <button onclick="saveToken()">Continue</button>
           </div>
         `;
@@ -370,7 +392,14 @@
       const input = document.getElementById('token-input');
       const token = input.value.trim();
       if (token) {
-        sessionStorage.setItem('editor_token', token);
+        const remember = document.getElementById('remember-token').checked;
+        if (remember) {
+          localStorage.setItem('editor_token', token);
+          sessionStorage.removeItem('editor_token');
+        } else {
+          sessionStorage.setItem('editor_token', token);
+          localStorage.removeItem('editor_token');
+        }
         document.querySelector('.modal-overlay')?.remove();
         if (window._tokenResolve) window._tokenResolve(token);
         loadReviewStatus();
@@ -379,6 +408,7 @@
 
     function clearToken() {
       sessionStorage.removeItem('editor_token');
+      localStorage.removeItem('editor_token');
       if (notionId) renderReviewStatus('Sign in to view');
       showToast('Token cleared', 'success');
     }
@@ -413,7 +443,7 @@
 
     async function loadReviewStatus() {
       if (!notionId) return;
-      const token = sessionStorage.getItem('editor_token');
+      const token = getStoredToken();
       if (!token) {
         renderReviewStatus('Sign in to view');
         return;
@@ -478,7 +508,7 @@
     }
 
     async function requireEditorToken() {
-      let token = sessionStorage.getItem('editor_token');
+      let token = getStoredToken();
       if (!token) token = await promptForToken();
       return token;
     }

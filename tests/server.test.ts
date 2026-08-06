@@ -119,6 +119,7 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain("fetch(`/api/posts?q=${encodeURIComponent(query)}`");
     expect(res.text).toContain("'Authorization': `Bearer ${token}`");
     expect(res.text).toContain('setTimeout(() => searchPosts');
+    expect(res.text).toContain('postSearchRequest += 1;');
     expect(res.text).toContain("nextUrl.searchParams.set('p', post.p)");
     expect(res.text).toContain("nextUrl.searchParams.delete('notion')");
     expect(res.text).toContain("option.textContent = post.title");

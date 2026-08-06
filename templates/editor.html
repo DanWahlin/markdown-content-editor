@@ -756,6 +756,7 @@
       input.addEventListener('focus', () => { void searchPosts(); });
       input.addEventListener('input', () => {
         clearTimeout(postSearchTimer);
+        postSearchRequest += 1;
         postSearchTimer = setTimeout(() => searchPosts(), 200);
       });
       input.addEventListener('keydown', (event) => {

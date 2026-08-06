@@ -21,6 +21,7 @@ The app does not browse directories, run Git commands, publish content, or deplo
 ## Features
 
 - Edit and preview Markdown side by side
+- Search and open Markdown files from an optional configured content root
 - Responsive workspace that expands to fit large desktop displays
 - Restrict access to explicit content directories and Markdown file extensions
 - Save changes with bearer-token authentication
@@ -74,6 +75,7 @@ The app does not browse directories, run Git commands, publish content, or deplo
    HOST=127.0.0.1
    EDITOR_TOKEN=paste-the-generated-value-here
    EDITOR_ALLOWED_PREFIXES=/absolute/path/to/your/content
+   EDITOR_BROWSE_ROOT=/absolute/path/to/your/content/blog
    EDITOR_PUBLIC_DIR=/absolute/path/to/your/site/public
    NOTION_ACCESS_TOKEN=
    ```
@@ -101,10 +103,13 @@ Open the printed URL. Reading is available immediately. The first save or review
 | `HOST` | No | Bind address. Defaults to `127.0.0.1`; set a broader address only when a trusted proxy requires it |
 | `EDITOR_TOKEN` | For writes | Protects save, publication-preparation, and review endpoints. Writes are disabled when missing |
 | `EDITOR_ALLOWED_PREFIXES` | Yes | Content directories the editor may access. Separate paths with `:` on macOS/Linux or `;` on Windows |
+| `EDITOR_BROWSE_ROOT` | No | Enables the authenticated **Open post…** picker for Markdown files under one directory. Must be inside `EDITOR_ALLOWED_PREFIXES` |
 | `EDITOR_PUBLIC_DIR` | For image previews | Public site directory used to resolve `/images/blog/...` images |
 | `NOTION_ACCESS_TOKEN` | For Notion | Enables Notion review status when a URL contains a `notion` page ID |
 
 The server refuses to start without `EDITOR_ALLOWED_PREFIXES`.
+
+When `EDITOR_BROWSE_ROOT` is configured, the header picker searches titles and relative paths under that directory. Results are limited to Markdown files, capped at 50 per request, and require `EDITOR_TOKEN`. Symlinks and hidden entries are not listed. Selecting a result opens the existing encoded `p` URL; it does not grant access outside `EDITOR_ALLOWED_PREFIXES`.
 
 ## URL Parameters
 
@@ -147,6 +152,7 @@ This app reads local content and can overwrite existing Markdown files after tok
 
 - Keep `EDITOR_ALLOWED_PREFIXES` as narrow as possible
 - Use a long, randomly generated `EDITOR_TOKEN`
+- Keep `EDITOR_BROWSE_ROOT` narrow. Listing is token-protected because titles and paths expose content metadata
 - Never commit `.env` or another secrets file
 - Put remote deployments behind HTTPS and an identity-aware proxy such as Cloudflare Access
 - Read routes have no application-level authentication; the outer access proxy must protect the complete app
@@ -178,6 +184,7 @@ The server accepts only existing Markdown files, rejects symlink escapes, blocks
 | --- | --- | --- | --- |
 | `GET` | `/` | None | Serve the editor UI |
 | `GET` | `/api/file?p=...` | None | Read an allowed Markdown file |
+| `GET` | `/api/posts?q=...` | Bearer token | Search the optional configured browse root |
 | `POST` | `/api/save` | Bearer token | Overwrite an existing Markdown file |
 | `POST` | `/api/prepare-publication` | Bearer token | Set Astro `draft` frontmatter to `false` and save |
 | `GET` | `/api/review?notion_id=...` | Bearer token | Read Notion review status |
@@ -244,6 +251,7 @@ Confirm that `command -v node` matches the unit's `ExecStart`. Every writable al
 ## Limitations
 
 - Opens one existing file from a URL; there is no file browser
+- The optional post picker searches one configured root; it is not a general filesystem browser
 - Overwrites the complete file with no locking, conflict detection, version history, backup, or atomic-save guarantee
 - Has no Git commit, push, branch, pull-request, publication, or deployment automation
 - Has no multi-user authorization model

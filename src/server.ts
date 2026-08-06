@@ -33,7 +33,72 @@ export function getAllowedPrefixes(): string[] {
 
 function isAllowedPath(filePath: string): boolean {
   const resolved = path.resolve(filePath);
-  return getAllowedPrefixes().some((prefix) => resolved.startsWith(prefix));
+  return getAllowedPrefixes().some((prefix) =>
+    resolved === prefix.slice(0, -1) || resolved.startsWith(prefix)
+  );
+}
+
+export function getBrowseRoot(): string | null {
+  const configured = process.env.EDITOR_BROWSE_ROOT?.trim();
+  if (!configured) return null;
+
+  const resolved = path.resolve(configured);
+  if (!fs.existsSync(resolved)) throw new Error("EDITOR_BROWSE_ROOT does not exist");
+  const canonical = fs.realpathSync(resolved);
+  if (!fs.statSync(canonical).isDirectory()) {
+    throw new Error("EDITOR_BROWSE_ROOT must be a directory");
+  }
+  if (!isAllowedPath(canonical)) {
+    throw new Error("EDITOR_BROWSE_ROOT must be inside EDITOR_ALLOWED_PREFIXES");
+  }
+  return canonical;
+}
+
+type BrowsePost = {
+  title: string;
+  relativePath: string;
+  p: string;
+};
+
+function listBrowsePosts(root: string, query: string): BrowsePost[] {
+  const files: string[] = [];
+  const maxScannedFiles = 2000;
+
+  const visit = (directory: string, depth: number): void => {
+    if (depth > 12 || files.length >= maxScannedFiles) return;
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (files.length >= maxScannedFiles) break;
+      if (entry.name.startsWith(".")) continue;
+      const candidate = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) {
+        visit(candidate, depth + 1);
+      } else if (entry.isFile() && EDITABLE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+        files.push(candidate);
+      }
+    }
+  };
+
+  visit(root, 0);
+  const normalizedQuery = query.trim().toLowerCase();
+  return files
+    .map((filePath) => {
+      const relativePath = path.relative(root, filePath).split(path.sep).join("/");
+      const content = fs.readFileSync(filePath, "utf8").slice(0, 64 * 1024);
+      const title = extractDocumentTitle(content) || path.basename(filePath, path.extname(filePath));
+      return {
+        title,
+        relativePath,
+        p: Buffer.from(filePath).toString("base64"),
+      };
+    })
+    .filter((post) =>
+      !normalizedQuery ||
+      post.title.toLowerCase().includes(normalizedQuery) ||
+      post.relativePath.toLowerCase().includes(normalizedQuery)
+    )
+    .sort((a, b) => a.relativePath.localeCompare(b.relativePath))
+    .slice(0, 50);
 }
 
 function decodePath(b64: string): string {
@@ -184,6 +249,33 @@ export function createApp() {
 
     const content = fs.readFileSync(filePath, "utf-8");
     res.json({ content, title: extractDocumentTitle(content) });
+  });
+
+  // GET /api/posts - search Markdown files under an optional configured root.
+  // Authentication is required because directory enumeration exposes content metadata.
+  app.get("/api/posts", requireAuth, (req: Request, res: Response) => {
+    const queryValue = req.query.q;
+    if (Array.isArray(queryValue) || (queryValue !== undefined && typeof queryValue !== "string")) {
+      res.status(400).json({ error: "Invalid query" });
+      return;
+    }
+    const query = queryValue || "";
+    if (query.length > 100) {
+      res.status(400).json({ error: "Query is too long" });
+      return;
+    }
+
+    try {
+      const root = getBrowseRoot();
+      if (!root) {
+        res.status(404).json({ error: "Post browsing is not configured" });
+        return;
+      }
+      res.setHeader("Cache-Control", "no-store");
+      res.json({ posts: listBrowsePosts(root, query) });
+    } catch {
+      res.status(503).json({ error: "Post browsing is unavailable" });
+    }
   });
 
   // POST /api/save - save file content

@@ -1,6 +1,6 @@
 import { describe, it, expect, afterAll, afterEach, vi } from 'vitest';
 import request from 'supertest';
-import { createApp, extractDocumentTitle, getAllowedPrefixes, setDraftStatus } from '../src/server';
+import { createApp, extractDocumentTitle, getAllowedPrefixes, getBrowseRoot, setDraftStatus } from '../src/server';
 import fs from 'fs';
 import path from 'path';
 
@@ -12,12 +12,25 @@ const testFile = path.join(testContentDir, '__test-editor-roundtrip.md');
 const testPublicDir = '/tmp/markdown-content-editor-public';
 const testImageDir = path.join(testPublicDir, 'images', 'blog');
 const testImage = path.join(testImageDir, 'preview.webp');
+const testBrowseRoot = path.join(testContentDir, 'blog');
+const testBrowsePostDir = path.join(testBrowseRoot, 'first-post');
 process.env.EDITOR_ALLOWED_PREFIXES = testContentDir;
 process.env.EDITOR_PUBLIC_DIR = testPublicDir;
+process.env.EDITOR_BROWSE_ROOT = testBrowseRoot;
 fs.mkdirSync(testContentDir, { recursive: true });
 fs.mkdirSync(testImageDir, { recursive: true });
+fs.mkdirSync(testBrowsePostDir, { recursive: true });
 fs.writeFileSync(testImage, Buffer.from('fake-webp-image'));
 fs.writeFileSync(path.join(testPublicDir, 'images', 'secret.txt'), 'not public through blog route');
+fs.writeFileSync(path.join(testBrowsePostDir, 'index.md'), `---
+title: "First Searchable Post"
+draft: true
+---
+
+![Preview image](/images/blog/preview.webp)
+`);
+fs.writeFileSync(path.join(testBrowseRoot, 'second.md'), '# Second Searchable Post');
+fs.writeFileSync(path.join(testBrowseRoot, 'ignored.txt'), 'not Markdown');
 
 const app = createApp();
 
@@ -95,6 +108,22 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('padding: 16px 12px 24px;');
   });
 
+  it('serves an accessible authenticated post picker', async () => {
+    const res = await request(app).get('/');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('id="post-search"');
+    expect(res.text).toContain('role="combobox"');
+    expect(res.text).toContain('id="post-results"');
+    expect(res.text).toContain('role="listbox"');
+    expect(res.text).toContain("fetch(`/api/posts?q=${encodeURIComponent(query)}`");
+    expect(res.text).toContain("'Authorization': `Bearer ${token}`");
+    expect(res.text).toContain('setTimeout(() => searchPosts');
+    expect(res.text).toContain("nextUrl.searchParams.set('p', post.p)");
+    expect(res.text).toContain("nextUrl.searchParams.delete('notion')");
+    expect(res.text).toContain("option.textContent = post.title");
+  });
+
   it('returns 403 for paths outside whitelist', async () => {
     const forbidden = Buffer.from('/etc/passwd').toString('base64');
     const res = await request(app).get(`/api/file?p=${forbidden}`);
@@ -108,6 +137,76 @@ describe('Markdown Content Editor API', () => {
       expect(() => getAllowedPrefixes()).toThrow('EDITOR_ALLOWED_PREFIXES');
     } finally {
       process.env.EDITOR_ALLOWED_PREFIXES = originalPrefixes;
+    }
+  });
+
+  it('requires authentication before listing configured posts', async () => {
+    const res = await request(app).get('/api/posts?q=searchable');
+
+    expect(res.status).toBe(401);
+  });
+
+  it('searches Markdown posts only inside the configured browse root', async () => {
+    const res = await request(app)
+      .get('/api/posts?q=first')
+      .set('Authorization', 'Bearer test-token-12345');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toContain('no-store');
+    expect(res.body.posts).toHaveLength(1);
+    expect(res.body.posts[0]).toMatchObject({
+      title: 'First Searchable Post',
+      relativePath: 'first-post/index.md',
+    });
+    expect(Buffer.from(res.body.posts[0].p, 'base64').toString('utf8'))
+      .toBe(path.join(testBrowsePostDir, 'index.md'));
+  });
+
+  it('does not expose non-Markdown files or symlink targets through post search', async () => {
+    const outside = path.join(testContentDir, 'outside-search.md');
+    const link = path.join(testBrowseRoot, 'linked.md');
+    fs.writeFileSync(outside, '# Linked Secret Post');
+    fs.symlinkSync(outside, link);
+
+    try {
+      const res = await request(app)
+        .get('/api/posts?q=')
+        .set('Authorization', 'Bearer test-token-12345');
+
+      expect(res.status).toBe(200);
+      expect(res.body.posts.map((post: { relativePath: string }) => post.relativePath))
+        .toEqual(['first-post/index.md', 'second.md']);
+    } finally {
+      fs.unlinkSync(link);
+      fs.unlinkSync(outside);
+    }
+  });
+
+  it('disables post browsing when no browse root is configured', async () => {
+    const originalRoot = process.env.EDITOR_BROWSE_ROOT;
+    delete process.env.EDITOR_BROWSE_ROOT;
+    try {
+      expect(getBrowseRoot()).toBeNull();
+      const res = await request(app)
+        .get('/api/posts')
+        .set('Authorization', 'Bearer test-token-12345');
+      expect(res.status).toBe(404);
+    } finally {
+      process.env.EDITOR_BROWSE_ROOT = originalRoot;
+    }
+  });
+
+  it('rejects a browse root outside the allowed content prefixes', async () => {
+    const originalRoot = process.env.EDITOR_BROWSE_ROOT;
+    process.env.EDITOR_BROWSE_ROOT = testPublicDir;
+    try {
+      expect(() => getBrowseRoot()).toThrow('EDITOR_ALLOWED_PREFIXES');
+      const res = await request(app)
+        .get('/api/posts')
+        .set('Authorization', 'Bearer test-token-12345');
+      expect(res.status).toBe(503);
+    } finally {
+      process.env.EDITOR_BROWSE_ROOT = originalRoot;
     }
   });
 

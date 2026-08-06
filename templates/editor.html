@@ -113,14 +113,12 @@
       line-height: 1;
       text-align: center;
     }
-    .EasyMDEContainer .editor-toolbar .bold::before { content: "B"; font-weight: 700; }
-    .EasyMDEContainer .editor-toolbar .italic::before { content: "I"; font-family: Georgia, serif; font-style: italic; }
-    .EasyMDEContainer .editor-toolbar .heading::before { content: "H"; font-weight: 700; }
-    .EasyMDEContainer .editor-toolbar .quote::before { content: "❞"; }
-    .EasyMDEContainer .editor-toolbar .unordered-list::before { content: "•"; font-size: 20px; }
-    .EasyMDEContainer .editor-toolbar .ordered-list::before { content: "1."; font-size: 13px; }
-    .EasyMDEContainer .editor-toolbar .image::before { content: "▣"; font-size: 17px; }
-    .EasyMDEContainer .editor-toolbar .guide::before { content: "?"; font-weight: 700; }
+    .EasyMDEContainer .editor-toolbar .bold::before,
+    .EasyMDEContainer .editor-toolbar .italic::before,
+    .EasyMDEContainer .editor-toolbar .heading::before,
+    .EasyMDEContainer .editor-toolbar .quote::before,
+    .EasyMDEContainer .editor-toolbar .unordered-list::before,
+    .EasyMDEContainer .editor-toolbar .ordered-list::before,
     .EasyMDEContainer .editor-toolbar .link::before,
     .EasyMDEContainer .editor-toolbar .preview::before,
     .EasyMDEContainer .editor-toolbar .side-by-side::before,
@@ -132,6 +130,24 @@
       background: currentColor;
       -webkit-mask: var(--toolbar-icon) center / 18px 18px no-repeat;
       mask: var(--toolbar-icon) center / 18px 18px no-repeat;
+    }
+    .EasyMDEContainer .editor-toolbar .bold::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%204h8a4%204%200%200%201%200%208H6z%22%2F%3E%3Cpath%20d%3D%22M6%2012h9a4%204%200%200%201%200%208H6z%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .italic::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M19%204h-9%22%2F%3E%3Cpath%20d%3D%22M14%2020H5%22%2F%3E%3Cpath%20d%3D%22M15%204%209%2020%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .heading::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%204v16%22%2F%3E%3Cpath%20d%3D%22M18%204v16%22%2F%3E%3Cpath%20d%3D%22M6%2012h12%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .quote::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2021c3%200%207-1%207-8V5c0-1.1-.9-2-2-2H4c-1.1%200-2%20.9-2%202v6c0%201.1.9%202%202%202h3c0%203-1%204-4%205z%22%2F%3E%3Cpath%20d%3D%22M14%2021c3%200%207-1%207-8V5c0-1.1-.9-2-2-2h-4c-1.1%200-2%20.9-2%202v6c0%201.1.9%202%202%202h3c0%203-1%204-4%205z%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .unordered-list::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%206h13%22%2F%3E%3Cpath%20d%3D%22M8%2012h13%22%2F%3E%3Cpath%20d%3D%22M8%2018h13%22%2F%3E%3Ccircle%20cx%3D%223%22%20cy%3D%226%22%20r%3D%221%22%20fill%3D%22black%22%20stroke%3D%22none%22%2F%3E%3Ccircle%20cx%3D%223%22%20cy%3D%2212%22%20r%3D%221%22%20fill%3D%22black%22%20stroke%3D%22none%22%2F%3E%3Ccircle%20cx%3D%223%22%20cy%3D%2218%22%20r%3D%221%22%20fill%3D%22black%22%20stroke%3D%22none%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .ordered-list::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M10%206h11%22%2F%3E%3Cpath%20d%3D%22M10%2012h11%22%2F%3E%3Cpath%20d%3D%22M10%2018h11%22%2F%3E%3Cpath%20d%3D%22M4%206h1v4%22%2F%3E%3Cpath%20d%3D%22M4%2010h2%22%2F%3E%3Cpath%20d%3D%22M6%2018H4c0-1%202-2%202-3s-1-1.5-2-1%22%2F%3E%3C%2Fsvg%3E");
     }
     .EasyMDEContainer .editor-toolbar .link::before {
       --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M10%2013a5%205%200%200%200%207.54.54l3-3a5%205%200%200%200-7.07-7.07l-1.72%201.71%22%2F%3E%3Cpath%20d%3D%22M14%2011a5%205%200%200%200-7.54-.54l-3%203a5%205%200%200%200%207.07%207.07l1.71-1.71%22%2F%3E%3C%2Fsvg%3E");
@@ -414,6 +430,26 @@
       }
       .EasyMDEContainer .editor-preview,
       .EasyMDEContainer .editor-preview-side { padding: 16px; }
+
+      .actions-bar {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      }
+      .feedback-wrap {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+      }
+      .action-btn {
+        width: 100%;
+        min-width: 0;
+        min-height: 48px;
+        padding: 8px 10px;
+        white-space: normal;
+        line-height: 1.2;
+      }
     }
   </style>
 </head>

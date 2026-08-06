@@ -67,8 +67,12 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('min-width: 44px;');
     expect(res.text).toContain('--toolbar-icon: url("data:image/svg+xml,');
     expect(res.text).toContain('mask: var(--toolbar-icon) center / 18px 18px no-repeat;');
-    expect(res.text).not.toContain('.link::before { content: "↗"');
-    expect(res.text).not.toContain('.preview::before { content: "◉"');
+    expect(res.text.match(/--toolbar-icon: url/g)).toHaveLength(10);
+    for (const oldGlyph of ['"B"', '"I"', '"H"', '"❞"', '"•"', '"1."', '"↗"', '"◉"', '"◫"', '"⛶"']) {
+      expect(res.text).not.toContain(`content: ${oldGlyph}`);
+    }
+    expect(res.text).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+    expect(res.text).toContain('min-height: 48px;');
   });
 
   it('returns 403 for paths outside whitelist', async () => {

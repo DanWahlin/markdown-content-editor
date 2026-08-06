@@ -91,7 +91,7 @@ The app does not browse directories, run Git commands, publish content, or deplo
    node -e "const p=Buffer.from(process.argv[1]).toString('base64'); console.log('http://localhost:18793/?p='+encodeURIComponent(p))" "/absolute/path/to/your/content/post.md"
    ```
 
-Open the printed URL. Reading is available immediately. The first save or review action asks for `EDITOR_TOKEN`. By default the token stays only in that browser tab's session storage. Select **Remember on this device** to keep it in that browser's local storage until **Clear Token** is selected. Do not persist the token on a shared device.
+Open the printed URL. Reading is available immediately. The first save or review action asks for `EDITOR_TOKEN`. Use **Show token** to verify the entered value before continuing. By default the token stays only in that browser tab's session storage. Select **Remember on this device** to keep it in that browser's local storage until **Clear Token** is selected. Do not reveal or persist the token on a shared device.
 
 ## Configuration
 

@@ -375,6 +375,10 @@
             <p>Enter your EDITOR_TOKEN to enable saving and review actions.</p>
             <input type="password" id="token-input" name="editor-token" autocomplete="current-password" placeholder="Paste your token…" autofocus />
             <label class="remember-token">
+              <input type="checkbox" id="show-token" onchange="toggleTokenVisibility()" />
+              <span>Show token</span>
+            </label>
+            <label class="remember-token">
               <input type="checkbox" id="remember-token" />
               <span>Remember on this device</span>
             </label>
@@ -404,6 +408,12 @@
         if (window._tokenResolve) window._tokenResolve(token);
         loadReviewStatus();
       }
+    };
+
+    window.toggleTokenVisibility = function() {
+      const input = document.getElementById('token-input');
+      const show = document.getElementById('show-token').checked;
+      input.type = show ? 'text' : 'password';
     };
 
     function clearToken() {

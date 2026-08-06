@@ -41,6 +41,9 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain("sessionStorage.getItem('editor_token')");
     expect(res.text).toContain("localStorage.getItem('editor_token')");
     expect(res.text).toContain('id="remember-token"');
+    expect(res.text).toContain('id="show-token"');
+    expect(res.text).toContain('Show token');
+    expect(res.text).toContain("input.type = show ? 'text' : 'password'");
     expect(res.text).toContain('Remember on this device');
     expect(res.text).toContain('Do not enable this on a shared device');
     expect(res.text).toContain('width: min(420px, calc(100vw - 32px));');

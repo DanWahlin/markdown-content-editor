@@ -123,6 +123,7 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain("nextUrl.searchParams.set('p', post.p)");
     expect(res.text).toContain("nextUrl.searchParams.delete('notion')");
     expect(res.text).toContain("option.textContent = post.title");
+    expect(res.text).toContain('initialEditorValue = easyMDE.value();');
   });
 
   it('returns 403 for paths outside whitelist', async () => {

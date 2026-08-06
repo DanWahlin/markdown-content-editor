@@ -60,38 +60,58 @@ type BrowsePost = {
   p: string;
 };
 
-function listBrowsePosts(root: string, query: string): BrowsePost[] {
-  const files: string[] = [];
-  const maxScannedFiles = 2000;
+async function readFilePrefix(filePath: string, maxBytes: number): Promise<string> {
+  const handle = await fs.promises.open(filePath, "r");
+  try {
+    const buffer = Buffer.alloc(maxBytes);
+    const { bytesRead } = await handle.read(buffer, 0, maxBytes, 0);
+    return buffer.subarray(0, bytesRead).toString("utf8");
+  } finally {
+    await handle.close();
+  }
+}
 
-  const visit = (directory: string, depth: number): void => {
-    if (depth > 12 || files.length >= maxScannedFiles) return;
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (files.length >= maxScannedFiles) break;
+async function listBrowsePosts(root: string, query: string): Promise<BrowsePost[]> {
+  const files: string[] = [];
+  const maxVisitedEntries = 5000;
+  const maxMarkdownFiles = 2000;
+  let visitedEntries = 0;
+
+  const visit = async (directory: string, depth: number): Promise<void> => {
+    if (depth > 12 || files.length >= maxMarkdownFiles || visitedEntries >= maxVisitedEntries) return;
+    const entries = await fs.promises.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      visitedEntries += 1;
+      if (visitedEntries > maxVisitedEntries || files.length >= maxMarkdownFiles) break;
       if (entry.name.startsWith(".")) continue;
       const candidate = path.join(directory, entry.name);
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) {
-        visit(candidate, depth + 1);
+        await visit(candidate, depth + 1);
       } else if (entry.isFile() && EDITABLE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
         files.push(candidate);
       }
     }
   };
 
-  visit(root, 0);
+  await visit(root, 0);
   const normalizedQuery = query.trim().toLowerCase();
-  return files
-    .map((filePath) => {
+  const posts: BrowsePost[] = [];
+  const readConcurrency = 16;
+  for (let index = 0; index < files.length; index += readConcurrency) {
+    const batch = files.slice(index, index + readConcurrency);
+    posts.push(...await Promise.all(batch.map(async (filePath) => {
       const relativePath = path.relative(root, filePath).split(path.sep).join("/");
-      const content = fs.readFileSync(filePath, "utf8").slice(0, 64 * 1024);
-      const title = extractDocumentTitle(content) || path.basename(filePath, path.extname(filePath));
+      const content = await readFilePrefix(filePath, 64 * 1024);
       return {
-        title,
+        title: extractDocumentTitle(content) || path.basename(filePath, path.extname(filePath)),
         relativePath,
         p: Buffer.from(filePath).toString("base64"),
       };
-    })
+    })));
+  }
+
+  return posts
     .filter((post) =>
       !normalizedQuery ||
       post.title.toLowerCase().includes(normalizedQuery) ||
@@ -253,7 +273,7 @@ export function createApp() {
 
   // GET /api/posts - search Markdown files under an optional configured root.
   // Authentication is required because directory enumeration exposes content metadata.
-  app.get("/api/posts", requireAuth, (req: Request, res: Response) => {
+  app.get("/api/posts", requireAuth, async (req: Request, res: Response) => {
     const queryValue = req.query.q;
     if (Array.isArray(queryValue) || (queryValue !== undefined && typeof queryValue !== "string")) {
       res.status(400).json({ error: "Invalid query" });
@@ -272,7 +292,7 @@ export function createApp() {
         return;
       }
       res.setHeader("Cache-Control", "no-store");
-      res.json({ posts: listBrowsePosts(root, query) });
+      res.json({ posts: await listBrowsePosts(root, query) });
     } catch {
       res.status(503).json({ error: "Post browsing is unavailable" });
     }

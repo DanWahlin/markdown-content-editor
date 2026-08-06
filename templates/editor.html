@@ -967,6 +967,7 @@
         });
         const saveData = await saveRes.json();
         if (!saveRes.ok) throw new Error(saveData.error || 'Save failed; review status was not changed');
+        initialEditorValue = easyMDE.value();
 
         const res = await fetch('/api/review', {
           method: 'POST',

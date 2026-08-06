@@ -109,7 +109,7 @@ Open the printed URL. Reading is available immediately. The first save or review
 
 The server refuses to start without `EDITOR_ALLOWED_PREFIXES`.
 
-When `EDITOR_BROWSE_ROOT` is configured, the header picker searches titles and relative paths under that directory. Results are limited to Markdown files, capped at 50 per request, and require `EDITOR_TOKEN`. Symlinks and hidden entries are not listed. Selecting a result opens the existing encoded `p` URL; it does not grant access outside `EDITOR_ALLOWED_PREFIXES`.
+When `EDITOR_BROWSE_ROOT` is configured, the header picker searches titles and relative paths under that directory. Results are limited to Markdown files, capped at 50 per request, and require `EDITOR_TOKEN`. Scans stop after 5,000 visited entries and report when results may be truncated. Symlinks and hidden entries are not listed, and canonical paths are revalidated before access. Selecting a result opens the existing encoded `p` URL; it does not grant access outside `EDITOR_ALLOWED_PREFIXES`.
 
 ## URL Parameters
 

@@ -60,9 +60,18 @@ type BrowsePost = {
   p: string;
 };
 
-async function readFilePrefix(filePath: string, maxBytes: number): Promise<string> {
-  const handle = await fs.promises.open(filePath, "r");
+function isInsideRoot(root: string, candidate: string): boolean {
+  return candidate === root || candidate.startsWith(`${root}${path.sep}`);
+}
+
+async function readFilePrefix(root: string, filePath: string, maxBytes: number): Promise<string> {
+  const canonical = await fs.promises.realpath(filePath);
+  if (!isInsideRoot(root, canonical)) throw new Error("Browse file escaped configured root");
+  const noFollow = fs.constants.O_NOFOLLOW || 0;
+  const handle = await fs.promises.open(canonical, fs.constants.O_RDONLY | noFollow);
   try {
+    const stat = await handle.stat();
+    if (!stat.isFile()) throw new Error("Browse entry is not a file");
     const buffer = Buffer.alloc(maxBytes);
     const { bytesRead } = await handle.read(buffer, 0, maxBytes, 0);
     return buffer.subarray(0, bytesRead).toString("utf8");
@@ -71,26 +80,41 @@ async function readFilePrefix(filePath: string, maxBytes: number): Promise<strin
   }
 }
 
-async function listBrowsePosts(root: string, query: string): Promise<BrowsePost[]> {
+async function listBrowsePosts(root: string, query: string): Promise<{ posts: BrowsePost[]; truncated: boolean }> {
   const files: string[] = [];
   const maxVisitedEntries = 5000;
-  const maxMarkdownFiles = 2000;
   let visitedEntries = 0;
 
   const visit = async (directory: string, depth: number): Promise<void> => {
-    if (depth > 12 || files.length >= maxMarkdownFiles || visitedEntries >= maxVisitedEntries) return;
-    const entries = await fs.promises.readdir(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      visitedEntries += 1;
-      if (visitedEntries > maxVisitedEntries || files.length >= maxMarkdownFiles) break;
-      if (entry.name.startsWith(".")) continue;
-      const candidate = path.join(directory, entry.name);
-      if (entry.isSymbolicLink()) continue;
-      if (entry.isDirectory()) {
-        await visit(candidate, depth + 1);
-      } else if (entry.isFile() && EDITABLE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
-        files.push(candidate);
+    if (depth > 12 || visitedEntries >= maxVisitedEntries) return;
+    const canonicalDirectory = await fs.promises.realpath(directory);
+    if (!isInsideRoot(root, canonicalDirectory)) return;
+    const noFollow = fs.constants.O_NOFOLLOW || 0;
+    const directoryOnly = fs.constants.O_DIRECTORY || 0;
+    const handle = await fs.promises.open(
+      canonicalDirectory,
+      fs.constants.O_RDONLY | noFollow | directoryOnly
+    );
+    try {
+      const stableDirectory = process.platform === "linux"
+        ? `/proc/self/fd/${handle.fd}`
+        : canonicalDirectory;
+      const entries = await fs.promises.readdir(stableDirectory, { withFileTypes: true });
+      for (const entry of entries) {
+        visitedEntries += 1;
+        if (visitedEntries > maxVisitedEntries) break;
+        if (entry.name.startsWith(".")) continue;
+        const candidate = path.join(stableDirectory, entry.name);
+        if (entry.isSymbolicLink()) continue;
+        if (entry.isDirectory()) {
+          await visit(candidate, depth + 1);
+        } else if (entry.isFile() && EDITABLE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+          const canonicalFile = await fs.promises.realpath(candidate);
+          if (isInsideRoot(root, canonicalFile)) files.push(canonicalFile);
+        }
       }
+    } finally {
+      await handle.close();
     }
   };
 
@@ -102,7 +126,7 @@ async function listBrowsePosts(root: string, query: string): Promise<BrowsePost[
     const batch = files.slice(index, index + readConcurrency);
     posts.push(...await Promise.all(batch.map(async (filePath) => {
       const relativePath = path.relative(root, filePath).split(path.sep).join("/");
-      const content = await readFilePrefix(filePath, 64 * 1024);
+      const content = await readFilePrefix(root, filePath, 64 * 1024);
       return {
         title: extractDocumentTitle(content) || path.basename(filePath, path.extname(filePath)),
         relativePath,
@@ -111,7 +135,7 @@ async function listBrowsePosts(root: string, query: string): Promise<BrowsePost[
     })));
   }
 
-  return posts
+  const filteredPosts = posts
     .filter((post) =>
       !normalizedQuery ||
       post.title.toLowerCase().includes(normalizedQuery) ||
@@ -119,6 +143,7 @@ async function listBrowsePosts(root: string, query: string): Promise<BrowsePost[
     )
     .sort((a, b) => a.relativePath.localeCompare(b.relativePath))
     .slice(0, 50);
+  return { posts: filteredPosts, truncated: visitedEntries >= maxVisitedEntries };
 }
 
 function decodePath(b64: string): string {
@@ -292,7 +317,7 @@ export function createApp() {
         return;
       }
       res.setHeader("Cache-Control", "no-store");
-      res.json({ posts: await listBrowsePosts(root, query) });
+      res.json(await listBrowsePosts(root, query));
     } catch {
       res.status(503).json({ error: "Post browsing is unavailable" });
     }

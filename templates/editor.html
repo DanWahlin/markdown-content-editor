@@ -665,6 +665,8 @@
       input.setAttribute('aria-expanded', 'false');
       input.removeAttribute('aria-activedescendant');
       activePostIndex = -1;
+      postOptions = [];
+      results.replaceChildren();
     }
 
     function setActivePostOption(index) {
@@ -746,6 +748,7 @@
         if (!res.ok) throw new Error(data.error || 'Unable to search posts');
         renderPostResults(data.posts || []);
       } catch (error) {
+        if (requestId !== postSearchRequest) return;
         closePostResults();
         showToast(error.message || 'Unable to search posts', 'error');
       }

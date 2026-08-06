@@ -120,6 +120,8 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain("'Authorization': `Bearer ${token}`");
     expect(res.text).toContain('setTimeout(() => searchPosts');
     expect(res.text).toContain('postSearchRequest += 1;');
+    expect(res.text).toContain('if (requestId !== postSearchRequest) return;');
+    expect(res.text).toContain('postOptions = [];');
     expect(res.text).toContain("nextUrl.searchParams.set('p', post.p)");
     expect(res.text).toContain("nextUrl.searchParams.delete('notion')");
     expect(res.text).toContain("option.textContent = post.title");
@@ -156,6 +158,7 @@ describe('Markdown Content Editor API', () => {
     expect(res.status).toBe(200);
     expect(res.headers['cache-control']).toContain('no-store');
     expect(res.body.posts).toHaveLength(1);
+    expect(res.body.truncated).toBe(false);
     expect(res.body.posts[0]).toMatchObject({
       title: 'First Searchable Post',
       relativePath: 'first-post/index.md',
@@ -166,9 +169,14 @@ describe('Markdown Content Editor API', () => {
 
   it('does not expose non-Markdown files or symlink targets through post search', async () => {
     const outside = path.join(testContentDir, 'outside-search.md');
+    const outsideDirectory = path.join(testContentDir, 'outside-directory');
     const link = path.join(testBrowseRoot, 'linked.md');
+    const directoryLink = path.join(testBrowseRoot, 'linked-directory');
     fs.writeFileSync(outside, '# Linked Secret Post');
+    fs.mkdirSync(outsideDirectory);
+    fs.writeFileSync(path.join(outsideDirectory, 'secret.md'), '# Directory Secret Post');
     fs.symlinkSync(outside, link);
+    fs.symlinkSync(outsideDirectory, directoryLink);
 
     try {
       const res = await request(app)
@@ -180,6 +188,8 @@ describe('Markdown Content Editor API', () => {
         .toEqual(['first-post/index.md', 'second.md']);
     } finally {
       fs.unlinkSync(link);
+      fs.unlinkSync(directoryLink);
+      fs.rmSync(outsideDirectory, { recursive: true, force: true });
       fs.unlinkSync(outside);
     }
   });

@@ -36,7 +36,7 @@ describe('Markdown Content Editor API', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('width: min(96vw, 2200px);');
-    expect(res.text).toContain('padding: 24px clamp(12px, 1.5vw, 32px) 120px;');
+    expect(res.text).toContain('padding: 24px clamp(12px, 1.5vw, 32px) 32px;');
     expect(res.text).toContain('DOMPurify.sanitize');
     expect(res.text).toContain("sessionStorage.getItem('editor_token')");
     expect(res.text).toContain("localStorage.getItem('editor_token')");
@@ -69,7 +69,7 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('min-width: 44px;');
     expect(res.text).toContain('--toolbar-icon: url("data:image/svg+xml,');
     expect(res.text).toContain('mask: var(--toolbar-icon) center / 18px 18px no-repeat;');
-    expect(res.text.match(/--toolbar-icon: url/g)).toHaveLength(10);
+    expect(res.text.match(/--toolbar-icon: url/g)).toHaveLength(12);
     for (const oldGlyph of ['"B"', '"I"', '"H"', '"❞"', '"•"', '"1."', '"↗"', '"◉"', '"◫"', '"⛶"']) {
       expect(res.text).not.toContain(`content: ${oldGlyph}`);
     }
@@ -84,6 +84,15 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain("className: 'fullscreen no-disable'");
     expect(res.text).toContain("easyMDE.toolbarElements['side-by-side'] = easyMDE.toolbarElements['split-view']");
     expect(res.text).toContain("easyMDE.toolbarElements.fullscreen = easyMDE.toolbarElements['editor-fullscreen']");
+    expect(res.text).toContain("name: 'save-draft'");
+    expect(res.text).toContain("className: 'save-draft no-disable'");
+    expect(res.text).toContain("name: 'prepare-publication'");
+    expect(res.text).toContain("className: 'prepare-publication no-disable'");
+    expect(res.text).not.toContain('<button class="action-btn btn-save"');
+    expect(res.text).not.toContain('<button class="action-btn btn-prepare"');
+    expect(res.text).toContain("document.querySelector('.actions-bar').style.display = 'none'");
+    expect(res.text).toContain("document.body.classList.toggle('has-review-bar', Boolean(notionId))");
+    expect(res.text).toContain('padding: 16px 12px 24px;');
   });
 
   it('returns 403 for paths outside whitelist', async () => {

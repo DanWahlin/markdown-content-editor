@@ -80,8 +80,9 @@
     .editor-wrap {
       width: min(96vw, 2200px);
       margin: 0 auto;
-      padding: 24px clamp(12px, 1.5vw, 32px) 120px;
+      padding: 24px clamp(12px, 1.5vw, 32px) 32px;
     }
+    body.has-review-bar .editor-wrap { padding-bottom: 120px; }
 
     /* EasyMDE overrides — light & clean */
     .EasyMDEContainer {
@@ -122,7 +123,9 @@
     .EasyMDEContainer .editor-toolbar .link::before,
     .EasyMDEContainer .editor-toolbar .preview::before,
     .EasyMDEContainer .editor-toolbar .side-by-side::before,
-    .EasyMDEContainer .editor-toolbar .fullscreen::before {
+    .EasyMDEContainer .editor-toolbar .fullscreen::before,
+    .EasyMDEContainer .editor-toolbar .save-draft::before,
+    .EasyMDEContainer .editor-toolbar .prepare-publication::before {
       content: "";
       width: 18px;
       height: 18px;
@@ -160,6 +163,12 @@
     }
     .EasyMDEContainer .editor-toolbar .fullscreen::before {
       --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203H5a2%202%200%200%200-2%202v3%22%2F%3E%3Cpath%20d%3D%22M16%203h3a2%202%200%200%201%202%202v3%22%2F%3E%3Cpath%20d%3D%22M8%2021H5a2%202%200%200%201-2-2v-3%22%2F%3E%3Cpath%20d%3D%22M16%2021h3a2%202%200%200%200%202-2v-3%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .save-draft::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M15.2%203a2%202%200%200%201%201.4.6l3.8%203.8A2%202%200%200%201%2021%208.8V19a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V5a2%202%200%200%201%202-2z%22%2F%3E%3Cpath%20d%3D%22M17%2021v-8H7v8%22%2F%3E%3Cpath%20d%3D%22M7%203v5h8%22%2F%3E%3C%2Fsvg%3E");
+    }
+    .EasyMDEContainer .editor-toolbar .prepare-publication::before {
+      --toolbar-icon: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m7.5%204.27%209%205.15%22%2F%3E%3Cpath%20d%3D%22M21%208a2%202%200%200%200-1-1.73l-7-4a2%202%200%200%200-2%200l-7%204A2%202%200%200%200%203%208v8a2%202%200%200%200%201%201.73l7%204a2%202%200%200%200%202%200l7-4A2%202%200%200%200%2021%2016z%22%2F%3E%3Cpath%20d%3D%22M3.3%207%2012%2012l8.7-5%22%2F%3E%3Cpath%20d%3D%22M12%2022V12%22%2F%3E%3C%2Fsvg%3E");
     }
     .EasyMDEContainer .CodeMirror {
       background: #fff;
@@ -251,14 +260,6 @@
       transition: all 0.15s;
       white-space: nowrap;
     }
-    .btn-save {
-      background: #f3f4f6;
-      color: #374151;
-      border: 1px solid #e2e5ea;
-    }
-    .btn-save:hover { background: #e5e7eb; border-color: #d1d5db; }
-    .btn-prepare { background: #4f46e5; color: #fff; }
-    .btn-prepare:hover { background: #4338ca; }
     .btn-approve { background: #10b981; color: #fff; }
     .btn-approve:hover { background: #059669; }
     .btn-revision { background: #f59e0b; color: #fff; }
@@ -397,8 +398,9 @@
       .editor-wrap {
         width: 100%;
         min-width: 0;
-        padding: 16px 12px 140px;
+        padding: 16px 12px 24px;
       }
+      body.has-review-bar .editor-wrap { padding-bottom: 140px; }
       .EasyMDEContainer { min-width: 0; }
       .EasyMDEContainer .editor-toolbar {
         display: flex;
@@ -478,8 +480,6 @@
     <div class="feedback-wrap">
       <input type="text" id="feedback" placeholder="Add feedback or revision notes…" />
     </div>
-    <button class="action-btn btn-save" onclick="saveDraft()">💾 Save Changes</button>
-    <button class="action-btn btn-prepare" onclick="prepareForPublication()">📦 Prepare for Publication</button>
     <button class="action-btn btn-approve review-btn" onclick="submitReview('Approved', event)">✅ Approve Review</button>
     <button class="action-btn btn-revision review-btn" onclick="submitReview('Needs Revision', event)">✏️ Needs Revision</button>
     <button class="action-btn btn-deny review-btn" onclick="submitReview('Denied', event)">❌ Deny</button>
@@ -494,9 +494,11 @@
     const previewAssetVersion = Date.now().toString(36);
     let easyMDE;
 
+    document.body.classList.toggle('has-review-bar', Boolean(notionId));
     if (!notionId) {
       document.querySelectorAll('.review-btn').forEach(btn => btn.style.display = 'none');
       document.getElementById('feedback').style.display = 'none';
+      document.querySelector('.actions-bar').style.display = 'none';
     }
 
     function getStoredToken() {
@@ -638,6 +640,18 @@
               action: EasyMDE.toggleFullScreen,
               className: 'fullscreen no-disable',
               title: 'Toggle Fullscreen',
+            },
+            {
+              name: 'save-draft',
+              action: () => { void saveDraft(); },
+              className: 'save-draft no-disable',
+              title: 'Save Changes',
+            },
+            {
+              name: 'prepare-publication',
+              action: () => { void prepareForPublication(); },
+              className: 'prepare-publication no-disable',
+              title: 'Prepare for Publication',
             },
           ],
           initialValue: data.content,

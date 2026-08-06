@@ -62,8 +62,10 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('grid-template-columns: minmax(0, 1fr) auto;');
     expect(res.text).toContain('display: contents;');
     expect(res.text).toContain('min-width: 0;');
-    expect(res.text).toContain('overflow-x: auto;');
-    expect(res.text).toContain('-webkit-overflow-scrolling: touch;');
+    expect(res.text).toContain('flex-wrap: wrap;');
+    expect(res.text).toContain('overflow-x: visible;');
+    expect(res.text).toContain('-webkit-overflow-scrolling: auto;');
+    expect(res.text).toContain('display: none;');
     expect(res.text).toContain('min-width: 44px;');
     expect(res.text).toContain('--toolbar-icon: url("data:image/svg+xml,');
     expect(res.text).toContain('mask: var(--toolbar-icon) center / 18px 18px no-repeat;');

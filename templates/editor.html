@@ -402,12 +402,12 @@
       .EasyMDEContainer { min-width: 0; }
       .EasyMDEContainer .editor-toolbar {
         display: flex;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         align-items: center;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
+        overflow-x: visible;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: auto;
+        row-gap: 2px;
       }
       .EasyMDEContainer .editor-toolbar button {
         float: none;
@@ -418,10 +418,7 @@
         padding: 0;
       }
       .EasyMDEContainer .editor-toolbar i.separator {
-        float: none;
-        flex: 0 0 1px;
-        height: 24px;
-        margin: 0 4px;
+        display: none;
       }
       .EasyMDEContainer .CodeMirror {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

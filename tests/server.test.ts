@@ -72,6 +72,7 @@ describe('Markdown Content Editor API', () => {
       expect(res.text).not.toContain(`content: ${oldGlyph}`);
     }
     expect(res.text).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+    expect(res.text).toContain('align-items: stretch;');
     expect(res.text).toContain('min-height: 48px;');
   });
 

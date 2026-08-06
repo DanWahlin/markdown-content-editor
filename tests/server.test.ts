@@ -54,6 +54,23 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('integrity="sha384-');
   });
 
+  it('serves a mobile header and accessible SVG toolbar controls', async () => {
+    const res = await request(app).get('/');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('@media (max-width: 700px)');
+    expect(res.text).toContain('grid-template-columns: minmax(0, 1fr) auto;');
+    expect(res.text).toContain('display: contents;');
+    expect(res.text).toContain('min-width: 0;');
+    expect(res.text).toContain('overflow-x: auto;');
+    expect(res.text).toContain('-webkit-overflow-scrolling: touch;');
+    expect(res.text).toContain('min-width: 44px;');
+    expect(res.text).toContain('--toolbar-icon: url("data:image/svg+xml,');
+    expect(res.text).toContain('mask: var(--toolbar-icon) center / 18px 18px no-repeat;');
+    expect(res.text).not.toContain('.link::before { content: "↗"');
+    expect(res.text).not.toContain('.preview::before { content: "◉"');
+  });
+
   it('returns 403 for paths outside whitelist', async () => {
     const forbidden = Buffer.from('/etc/passwd').toString('base64');
     const res = await request(app).get(`/api/file?p=${forbidden}`);

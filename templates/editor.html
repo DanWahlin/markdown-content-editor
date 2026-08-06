@@ -628,13 +628,13 @@
             'quote', 'unordered-list', 'ordered-list', '|',
             'link', '|', 'preview',
             {
-              name: 'side-by-side',
+              name: 'split-view',
               action: EasyMDE.toggleSideBySide,
               className: 'side-by-side no-disable',
               title: 'Toggle Side by Side',
             },
             {
-              name: 'fullscreen',
+              name: 'editor-fullscreen',
               action: EasyMDE.toggleFullScreen,
               className: 'fullscreen no-disable',
               title: 'Toggle Fullscreen',
@@ -651,6 +651,9 @@
           },
           sideBySideFullscreen: false,
         });
+
+        easyMDE.toolbarElements['side-by-side'] = easyMDE.toolbarElements['split-view'];
+        easyMDE.toolbarElements.fullscreen = easyMDE.toolbarElements['editor-fullscreen'];
 
         document.getElementById('title').textContent = data.title || 'Untitled';
         renderDraftStatus(data.content);

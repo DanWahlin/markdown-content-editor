@@ -623,7 +623,23 @@
           spellChecker: false,
           autosave: { enabled: false },
           minHeight: 'calc(100vh - 200px)',
-          toolbar: ['bold','italic','heading','|','quote','unordered-list','ordered-list','|','link','|','preview','side-by-side','fullscreen'],
+          toolbar: [
+            'bold', 'italic', 'heading', '|',
+            'quote', 'unordered-list', 'ordered-list', '|',
+            'link', '|', 'preview',
+            {
+              name: 'side-by-side',
+              action: EasyMDE.toggleSideBySide,
+              className: 'side-by-side no-disable',
+              title: 'Toggle Side by Side',
+            },
+            {
+              name: 'fullscreen',
+              action: EasyMDE.toggleFullScreen,
+              className: 'fullscreen no-disable',
+              title: 'Toggle Fullscreen',
+            },
+          ],
           initialValue: data.content,
           previewRender: function(plainText) {
             const html = EasyMDE.prototype.markdown.call(easyMDE, plainText);

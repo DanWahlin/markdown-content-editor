@@ -76,6 +76,10 @@ describe('Markdown Content Editor API', () => {
     expect(res.text).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
     expect(res.text).toContain('align-items: stretch;');
     expect(res.text).toContain('min-height: 48px;');
+    expect(res.text).toContain("action: EasyMDE.toggleSideBySide");
+    expect(res.text).toContain("className: 'side-by-side no-disable'");
+    expect(res.text).toContain("action: EasyMDE.toggleFullScreen");
+    expect(res.text).toContain("className: 'fullscreen no-disable'");
   });
 
   it('returns 403 for paths outside whitelist', async () => {
